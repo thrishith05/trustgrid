@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #testmap { height: 600px; width: 100%; }
+        body { margin: 20px; font-family: Arial; }
+    </style>
+</head>
+<body>
+    <h2>🗺️ CivicFix Map Test - Should Show Circles!</h2>
+    <div id="testmap"></div>
+    <div id="info" style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px;"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('testmap').setView([17.4065, 78.4772], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Fetch reports and add markers with circles
+        fetch('http://localhost:3000/api/reports')
+            .then(res => res.json())
+            .then(data => {
+                const reports = data.reports || data;
+                
+                document.getElementById('info').innerHTML = `
+                    <strong>✅ Loaded ${reports.length} reports</strong><br>
+                    Showing markers with 450m verification circles
+                `;
+                
+                reports.forEach((report, index) => {
+                    // Marker color by severity
+                    const colors = {
+                        'low': '#10b981',
+                        'medium': '#f59e0b',  
+                        'high': '#ef4444',
+                        'critical': '#dc2626'
+                    };
+                    const color = colors[report.severity] || '#6b7280';
+                    
+                    // Add marker
+                    const marker = L.marker([report.latitude, report.longitude]).addTo(map);
+                    marker.bindPopup(`
+                        <strong>${report.type.toUpperCase()}</strong><br>
+                        ${report.address}<br>
+                        Severity: ${report.severity}
+                    `);
+                    
+                    // Add 450m circle
+                    L.circle([report.latitude, report.longitude], {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.15,
+                        radius: 450,
+                        weight: 2,
+                        dashArray: '5, 5'
+                    }).addTo(map).bindPopup(`Verification Zone: 450m`);
+                });
+                
+                // Fit map to show all markers
+                if (reports.length > 0) {
+                    const bounds = reports.map(r => [r.latitude, r.longitude]);
+                    map.fitBounds(bounds, {padding: [50, 50]});
+                }
+            })
+            .catch(err => {
+                document.getElementById('info').innerHTML = `❌ Error: ${err.message}`;
+            });
+    </script>
+</body>
+</html>
+

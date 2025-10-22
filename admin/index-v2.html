@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivicFix Admin Dashboard v2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 8px;
+            margin: 4px 0;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .nav-pills .nav-link:hover {
+            background: #e9ecef;
+            color: #000;
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .icon-box.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .icon-box.green { background: linear-gradient(135deg, #10b981, #059669); }
+        .icon-box.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .icon-box.red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        .report-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+
+        .report-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        #map { height: 500px; border-radius: 12px; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="fas fa-city me-2"></i>CivicFix Admin v2.0
+            </span>
+            <button class="btn btn-light btn-sm" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 bg-white border-end py-3">
+                <nav class="nav nav-pills flex-column">
+                    <a class="nav-link active" onclick="switchSection('dashboard')" href="javascript:void(0)">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" onclick="switchSection('reports')" href="javascript:void(0)">
+                        <i class="fas fa-clipboard-list me-2"></i>Reports
+                    </a>
+                    <a class="nav-link" onclick="switchSection('analytics')" href="javascript:void(0)">
+                        <i class="fas fa-chart-bar me-2"></i>Analytics
+                    </a>
+                    <a class="nav-link" onclick="switchSection('departments')" href="javascript:void(0)">
+                        <i class="fas fa-building me-2"></i>Departments
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 p-4">
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="section active">
+                    <h2 class="mb-4">Dashboard</h2>
+                    
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card">
+                                <div class="icon-box blue">
+                                    <i class="fas fa-clipboard-list"></i>
+                                </div>
+                                <div class="stat-number" id="total">0</div>
+                                <div class="stat-label">Total Reports</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card">
+                                <div class="icon-box green">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-number" id="resolved">0</div>
+                                <div class="stat-label">Resolved</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card">
+                                <div class="icon-box orange">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-number" id="pending">0</div>
+                                <div class="stat-label">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-3">
+                            <div class="stat-card">
+                                <div class="icon-box red">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stat-number" id="critical">0</div>
+                                <div class="stat-label">Critical</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="mb-3">Recent Reports</h4>
+                    <div id="recent-reports"></div>
+                </div>
+
+                <!-- Reports Section -->
+                <div id="reports" class="section">
+                    <h2 class="mb-4">All Reports</h2>
+                    <div id="all-reports"></div>
+                </div>
+
+                <!-- Analytics Section -->
+                <div id="analytics" class="section">
+                    <h2 class="mb-4">Analytics</h2>
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="stat-card">
+                                <h5 class="mb-3">Reports by Type</h5>
+                                <div id="type-stats"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="stat-card">
+                                <h5 class="mb-3">Reports by Severity</h5>
+                                <div id="severity-stats"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Departments Section -->
+                <div id="departments" class="section">
+                    <h2 class="mb-4">Departments</h2>
+                    <div id="departments-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:3000/api';
+
+        // Switch sections
+        function switchSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            // Remove active from all nav links
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(section).classList.add('active');
+            
+            // Set active nav link
+            event.target.classList.add('active');
+            
+            // Load data for section
+            loadSectionData(section);
+        }
+
+        // Load section data
+        function loadSectionData(section) {
+            switch(section) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'reports':
+                    loadReports();
+                    break;
+                case 'analytics':
+                    loadAnalytics();
+                    break;
+                case 'departments':
+                    loadDepartments();
+                    break;
+            }
+        }
+
+        // Load dashboard
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API}/stats`);
+                const data = await res.json();
+                const stats = data.stats || data;
+
+                document.getElementById('total').textContent = stats.total || 0;
+                document.getElementById('resolved').textContent = stats.resolved || 0;
+                document.getElementById('pending').textContent = stats.pending || 0;
+                document.getElementById('critical').textContent = stats.critical || 0;
+
+                // Load recent reports
+                const reportsRes = await fetch(`${API}/reports?limit=5`);
+                const reportsData = await reportsRes.json();
+                const reports = reportsData.reports || reportsData;
+
+                const html = reports.map(r => `
+                    <div class="report-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6><strong>${formatType(r.type)}</strong></h6>
+                                <p class="mb-1 text-muted small">${r.address}</p>
+                                <p class="mb-0 text-muted small"><i class="fas fa-clock me-1"></i>${new Date(r.created_at).toLocaleString()}</p>
+                            </div>
+                            <div>
+                                <span class="badge bg-${getSeverityColor(r.severity)}">${r.severity}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('recent-reports').innerHTML = html || '<p class="text-muted">No reports yet</p>';
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Load all reports
+        async function loadReports() {
+            try {
+                const res = await fetch(`${API}/reports`);
+                const data = await res.json();
+                const reports = data.reports || data;
+
+                const html = reports.map(r => `
+                    <div class="report-card">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5><strong>${formatType(r.type)}</strong></h5>
+                                <p class="mb-1"><i class="fas fa-map-marker-alt me-2 text-danger"></i>${r.address}</p>
+                                <p class="mb-1 text-muted small">${r.description || 'No description'}</p>
+                                <p class="mb-0 text-muted small"><i class="fas fa-clock me-1"></i>${new Date(r.created_at).toLocaleString()}</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="badge bg-${getSeverityColor(r.severity)} mb-2">${r.severity}</span><br>
+                                <span class="badge bg-secondary">${r.status}</span><br>
+                                ${r.image_path ? `<a href="http://localhost:3000/${r.image_path}" target="_blank" class="btn btn-sm btn-outline-primary mt-2"><i class="fas fa-image me-1"></i>View Image</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('all-reports').innerHTML = html || '<p class="text-muted">No reports found</p>';
+
+            } catch (error) {
+                console.error('Error loading reports:', error);
+            }
+        }
+
+        // Load analytics
+        async function loadAnalytics() {
+            try {
+                const res = await fetch(`${API}/stats`);
+                const data = await res.json();
+                const stats = data.stats || data;
+
+                // Type stats
+                const typeHtml = (stats.byType || []).map(t => `
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span><strong>${formatType(t.type)}</strong></span>
+                        <span class="badge bg-primary">${t.count}</span>
+                    </div>
+                `).join('');
+                document.getElementById('type-stats').innerHTML = typeHtml || '<p class="text-muted">No data</p>';
+
+                // Severity stats
+                const severityHtml = (stats.bySeverity || []).map(s => `
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span><strong>${s.severity}</strong></span>
+                        <span class="badge bg-${getSeverityColor(s.severity)}">${s.count}</span>
+                    </div>
+                `).join('');
+                document.getElementById('severity-stats').innerHTML = severityHtml || '<p class="text-muted">No data</p>';
+
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        // Load departments
+        async function loadDepartments() {
+            try {
+                const res = await fetch(`${API}/departments`);
+                const data = await res.json();
+                const depts = data.departments || data;
+
+                const html = depts.map(d => `
+                    <div class="report-card">
+                        <h5><strong>${d.name}</strong></h5>
+                        <p class="mb-1">${d.description || 'No description'}</p>
+                        <p class="mb-0 text-muted small">
+                            <i class="fas fa-envelope me-1"></i>${d.contact_email || 'No email'}
+                            ${d.contact_phone ? `<i class="fas fa-phone ms-3 me-1"></i>${d.contact_phone}` : ''}
+                        </p>
+                    </div>
+                `).join('');
+
+                document.getElementById('departments-list').innerHTML = html || '<p class="text-muted">No departments</p>';
+
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        // Helper functions
+        function formatType(type) {
+            return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function getSeverityColor(severity) {
+            const colors = {
+                low: 'success',
+                medium: 'warning',
+                high: 'danger',
+                critical: 'dark'
+            };
+            return colors[severity] || 'secondary';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>
+

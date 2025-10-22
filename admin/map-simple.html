@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CivicFix Map - Simple Version</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #mymap { height: 700px; width: 100%; border: 2px solid #333; }
+        .info { padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ CivicFix Map with Verification Circles</h1>
+    <div class="info" id="status">Loading...</div>
+    <div id="mymap"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        console.log('🚀 Starting map...');
+        console.log('Leaflet loaded:', typeof L !== 'undefined');
+
+        // Create map
+        const map = L.map('mymap').setView([17.4065, 78.4772], 13);
+        console.log('✅ Map created');
+
+        // Add tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+        console.log('✅ Tiles added');
+
+        // Fetch and display reports
+        fetch('http://localhost:3000/api/reports')
+            .then(res => res.json())
+            .then(data => {
+                const reports = data.reports || data;
+                console.log(`📊 Loaded ${reports.length} reports`);
+                
+                document.getElementById('status').innerHTML = `
+                    <strong>✅ Loaded ${reports.length} reports</strong><br>
+                    Each has a 450m verification circle (dashed outline)
+                `;
+
+                reports.forEach((report, i) => {
+                    console.log(`Adding report ${i+1}: ${report.type} at [${report.latitude}, ${report.longitude}]`);
+                    
+                    // Color by severity
+                    const colors = {
+                        low: '#10b981',
+                        medium: '#f59e0b',
+                        high: '#ef4444',
+                        critical: '#dc2626'
+                    };
+                    const color = colors[report.severity] || '#6b7280';
+                    
+                    // Add marker
+                    const marker = L.marker([report.latitude, report.longitude]).addTo(map);
+                    marker.bindPopup(`
+                        <strong>${report.type.toUpperCase()}</strong><br>
+                        ${report.address}<br>
+                        Severity: <strong style="color: ${color}">${report.severity}</strong><br>
+                        Upvotes: ${report.upvotes || 0} | Verifications: ${report.verification_count || 0}
+                    `);
+                    console.log(`  ✅ Marker ${i+1} added`);
+                    
+                    // Add BIG VISIBLE 450m circle
+                    const circle = L.circle([report.latitude, report.longitude], {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.2,
+                        radius: 450,
+                        weight: 4,
+                        dashArray: '10, 5'
+                    }).addTo(map);
+                    console.log(`  ✅ Circle ${i+1} added (450m, color: ${color})`);
+                });
+
+                // Zoom to fit all markers
+                if (reports.length > 0) {
+                    const bounds = reports.map(r => [r.latitude, r.longitude]);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                    console.log('✅ Map fitted to bounds');
+                }
+            })
+            .catch(err => {
+                console.error('❌ Error:', err);
+                document.getElementById('status').innerHTML = `<strong style="color: red;">❌ Error: ${err.message}</strong>`;
+            });
+    </script>
+</body>
+</html>
+
+

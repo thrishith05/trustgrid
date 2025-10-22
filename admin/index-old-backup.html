@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CivicFix Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 260px;
+            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-header h4 {
+            color: white;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .sidebar-header small {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin: 6px 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .nav-link i {
+            width: 24px;
+            font-size: 1.1rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        /* Mobile Overlay */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            background: var(--light);
+            transition: margin-left 0.3s ease;
+        }
+
+        .content-header {
+            background: white;
+            padding: 24px 32px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 32px;
+        }
+
+        .content-header h2 {
+            color: var(--dark);
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* Stats Cards */
+        .stats-card {
+            border: none;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            background: white;
+            height: 100%;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .stats-card .icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+
+        .stats-card.primary .icon { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .stats-card.success .icon { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .stats-card.warning .icon { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .stats-card.danger .icon { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+
+        .stats-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 8px 0;
+            color: var(--dark);
+        }
+
+        .stats-card p {
+            color: #6b7280;
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Issue Cards */
+        .issue-card {
+            border: none;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 16px;
+            background: white;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+        }
+
+        .issue-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transform: translateX(4px);
+        }
+
+        /* Badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.reported { background: #dbeafe; color: #1e40af; }
+        .status-badge.acknowledged { background: #fef3c7; color: #92400e; }
+        .status-badge.in_progress { background: #fef3c7; color: #92400e; }
+        .status-badge.resolved { background: #d1fae5; color: #065f46; }
+        .status-badge.closed { background: #f3f4f6; color: #4b5563; }
+
+        .severity-badge.low { background: #d1fae5; color: #065f46; }
+        .severity-badge.medium { background: #fed7aa; color: #92400e; }
+        .severity-badge.high { background: #fecaca; color: #991b1b; }
+        .severity-badge.critical { background: #fca5a5; color: #7f1d1d; }
+
+        /* Map */
+        #map {
+            height: 500px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Buttons */
+        .btn {
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Form Controls */
+        .form-select, .form-control {
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            padding: 10px 16px;
+            transition: all 0.2s ease;
+        }
+
+        .form-select:focus, .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .content-header {
+                padding: 20px 16px;
+                padding-top: 80px;
+            }
+
+            .stats-card {
+                margin-bottom: 16px;
+            }
+
+            #map {
+                height: 350px;
+            }
+
+            .filter-section {
+                padding: 16px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .content-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .stats-card h3 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Section */
+        .section {
+            padding: 0 32px 32px;
+        }
+
+        @media (max-width: 768px) {
+            .section {
+                padding: 0 16px 16px;
+            }
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+        }
+
+        .chart-container h5 {
+            color: var(--dark);
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h4>
+                <i class="fas fa-city me-2"></i>
+                CivicFix
+            </h4>
+            <small>Admin Dashboard v2.0</small>
+        </div>
+                    <nav class="nav flex-column px-3">
+                        <a class="nav-link active" href="#" onclick="showSection('dashboard', event); return false;">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Dashboard
+                        </a>
+                        <a class="nav-link" href="#" onclick="showSection('reports', event); return false;">
+                            <i class="fas fa-clipboard-list me-2"></i>
+                            Reports
+                        </a>
+                        <a class="nav-link" href="#" onclick="showSection('map', event); return false;">
+                            <i class="fas fa-map-marked-alt me-2"></i>
+                            Map View
+                        </a>
+                        <a class="nav-link" href="#" onclick="showSection('analytics', event); return false;">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Analytics
+                        </a>
+                        <a class="nav-link" href="#" onclick="showSection('departments', event); return false;">
+                            <i class="fas fa-building me-2"></i>
+                            Departments
+                        </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+                    <!-- Header -->
+                    <div class="bg-white shadow-sm p-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0" id="page-title">Dashboard</h5>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-success me-2" id="connection-status">
+                                    <i class="fas fa-circle me-1"></i>
+                                    Connected
+                                </span>
+                                <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Section -->
+                    <div id="dashboard-section" class="section">
+                        <div class="container-fluid">
+                            <!-- Stats Cards -->
+                            <div class="row mb-4">
+                                <div class="col-md-3 mb-3">
+                                    <div class="card stats-card">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-shrink-0">
+                                                    <div class="bg-primary text-white rounded-circle p-3">
+                                                        <i class="fas fa-clipboard-list"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="card-title text-muted mb-1">Total Reports</h6>
+                                                    <h3 class="mb-0" id="total-reports">-</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card stats-card">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-shrink-0">
+                                                    <div class="bg-success text-white rounded-circle p-3">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="card-title text-muted mb-1">Resolved</h6>
+                                                    <h3 class="mb-0" id="resolved-reports">-</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card stats-card">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-shrink-0">
+                                                    <div class="bg-warning text-white rounded-circle p-3">
+                                                        <i class="fas fa-clock"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="card-title text-muted mb-1">Pending</h6>
+                                                    <h3 class="mb-0" id="pending-reports">-</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card stats-card">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-shrink-0">
+                                                    <div class="bg-danger text-white rounded-circle p-3">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-grow-1 ms-3">
+                                                    <h6 class="card-title text-muted mb-1">Critical</h6>
+                                                    <h3 class="mb-0" id="critical-reports">-</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Reports -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Recent Reports</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="recent-reports-list">
+                                                <div class="text-center py-4">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports Section -->
+                    <div id="reports-section" class="section" style="display: none;">
+                        <div class="container-fluid">
+                            <!-- Filters -->
+                            <div class="filter-section">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Status</label>
+                                        <select class="form-select" id="status-filter">
+                                            <option value="">All Statuses</option>
+                                            <option value="reported">Reported</option>
+                                            <option value="acknowledged">Acknowledged</option>
+                                            <option value="in_progress">In Progress</option>
+                                            <option value="resolved">Resolved</option>
+                                            <option value="closed">Closed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Type</label>
+                                        <select class="form-select" id="type-filter">
+                                            <option value="">All Types</option>
+                                            <option value="pothole">Pothole</option>
+                                            <option value="streetlight">Streetlight</option>
+                                            <option value="trash">Trash</option>
+                                            <option value="graffiti">Graffiti</option>
+                                            <option value="damaged_sign">Damaged Sign</option>
+                                            <option value="broken_sidewalk">Broken Sidewalk</option>
+                                            <option value="water_leak">Water Leak</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Severity</label>
+                                        <select class="form-select" id="severity-filter">
+                                            <option value="">All Severities</option>
+                                            <option value="low">Low</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="high">High</option>
+                                            <option value="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                            <i class="fas fa-filter me-1"></i>
+                                            Apply Filters
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reports List -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">All Reports</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="reports-list">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Section -->
+                    <div id="map-section" class="section" style="display: none;">
+                        <div class="container-fluid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Issue Map</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="map"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Section -->
+                    <div id="analytics-section" class="section" style="display: none;">
+                        <div class="container-fluid">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Reports by Type</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="type-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Reports by Status</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="status-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Departments Section -->
+                    <div id="departments-section" class="section" style="display: none;">
+                        <div class="container-fluid">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Departments</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="departments-list">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

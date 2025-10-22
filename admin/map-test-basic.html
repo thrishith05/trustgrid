@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+    </style>
+</head>
+<body>
+    <h2>Map Test - If this works, the issue is in admin panel code</h2>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Simple test
+        var map = L.map('map').setView([17.4065, 78.4772], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Add ONE big circle
+        L.circle([17.4065, 78.4772], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.3,
+            radius: 450
+        }).addTo(map).bindPopup("450m circle - You should see this!");
+
+        L.marker([17.4065, 78.4772]).addTo(map)
+            .bindPopup('Test marker')
+            .openPopup();
+    </script>
+</body>
+</html>
+

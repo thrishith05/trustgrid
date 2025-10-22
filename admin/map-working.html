@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Working Map Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #map { height: 600px; width: 100%; border: 2px solid #ccc; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🗺️ Working Map Test</h1>
+    <div id="status" class="status">Loading...</div>
+    <div id="map"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + (isError ? 'error' : 'success');
+            console.log(message);
+        }
+        
+        updateStatus('✅ Leaflet loaded, initializing map...');
+        
+        try {
+            // Create map
+            const map = L.map('map').setView([17.4065, 78.4772], 13);
+            updateStatus('✅ Map created, adding tiles...');
+            
+            // Try CartoDB first
+            const cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                subdomains: 'abcd',
+                maxZoom: 19,
+                attribution: '© CARTO'
+            });
+            
+            cartoLayer.addTo(map);
+            updateStatus('✅ CartoDB tiles added, waiting for load...');
+            
+            // Track tile loading
+            let tilesLoaded = 0;
+            let tilesError = 0;
+            
+            cartoLayer.on('tileload', function() {
+                tilesLoaded++;
+                if (tilesLoaded === 1) {
+                    updateStatus('✅ First tile loaded! Map should be working now.');
+                }
+            });
+            
+            cartoLayer.on('tileerror', function(e) {
+                tilesError++;
+                console.error('Tile error:', e);
+                if (tilesError > 5) {
+                    updateStatus('❌ Too many tile errors, trying OpenStreetMap...', true);
+                    
+                    // Remove CartoDB and try OpenStreetMap
+                    map.removeLayer(cartoLayer);
+                    
+                    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap'
+                    });
+                    
+                    osmLayer.addTo(map);
+                    
+                    osmLayer.on('tileload', function() {
+                        updateStatus('✅ OpenStreetMap tiles working!');
+                    });
+                    
+                    osmLayer.on('tileerror', function() {
+                        updateStatus('❌ Both tile providers failed!', true);
+                    });
+                }
+            });
+            
+            // Add test marker
+            L.marker([17.4065, 78.4772]).addTo(map)
+                .bindPopup('Hyderabad, India<br>✅ Map is working!')
+                .openPopup();
+                
+        } catch (error) {
+            updateStatus('❌ JavaScript error: ' + error.message, true);
+            console.error('Map initialization error:', error);
+        }
+    </script>
+</body>
+</html>
