@@ -1,4 +1,4 @@
-# CivicFix - AI-Powered Civic Issue Reporting System
+# TrustGrid - AI-Powered Civic Issue Reporting System
 
 A Flutter-based mobile application that uses AI and AR to automatically detect, classify, and report civic issues in real-time.
 
